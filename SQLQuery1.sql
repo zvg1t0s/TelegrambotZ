@@ -1,0 +1,1 @@
+﻿INSERT INTO Users (Name, NickName, Number) VALUES (N'Загит', N'Dremora', 2103023)
